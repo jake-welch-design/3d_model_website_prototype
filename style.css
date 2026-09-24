@@ -344,12 +344,8 @@ body {
   pointer-events: none;
   z-index: 20000;
   border-radius: 18px / 14px;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
-  /* Black beyond the rounded glass, plus a soft inner glow at the edge. */
-  box-shadow:
-    0 0 0 40px #000,
-    inset 0 0 60px rgba(0, 0, 0, 0.4),
-    inset 0 0 8px rgba(0, 0, 0, 0.6);
+  /* Black beyond the rounded glass. */
+  box-shadow: 0 0 0 40px #000;
 }
 .crt::after {
   /* Faint glare across the top of the glass. */
