@@ -19,7 +19,7 @@
       line-height: 1.5;
     }
     .product h1 { margin: 0 0 8px; font-size: 16px; }
-    .product a { color: var(--highlight); }
+    .product .actions { margin: 16px 0 0; text-align: right; }
   </style>
 </head>
 <body>
@@ -27,15 +27,15 @@
     <span class="menu">File</span>
     <span class="menu">Edit</span>
     <span class="spacer"></span>
-    <span class="menu">Studio Pottery</span>
+    <span class="menu app-menu">Studio Pottery</span>
   </nav>
 
-  <div class="pot-window product">
+  <div class="pot-window product is-active">
     <div class="titlebar"><span class="title" id="window-title">Mug</span></div>
     <div class="body">
       <h1 id="title">Mug</h1>
       <p>Placeholder product page. The product detail view will go here.</p>
-      <p><a href="index.html">← Back to the desktop</a></p>
+      <p class="actions"><a class="button default" href="index.html">Back</a></p>
     </div>
   </div>
 

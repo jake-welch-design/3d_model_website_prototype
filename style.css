@@ -1,15 +1,18 @@
-/* Late-90s desktop (Platinum-era) look, viewed through a CRT. */
+/* Mac OS 9 (Platinum appearance) desktop, viewed through a CRT. */
 :root {
   --desktop: #6673b0;
   --desktop-dither: #5b67a3;
   --platinum: #dddddd;
   --platinum-light: #ffffff;
+  --platinum-mid: #bbbbbb;
   --platinum-shade: #999999;
-  --platinum-dark: #555555;
+  --platinum-dark: #666666;
   --ink: #000000;
-  --highlight: #3333aa;
+  --inactive-ink: #888888;
+  --highlight: #6666cc;       /* menu and progress-bar accent */
   --menubar-height: 20px;
   --ui-font: "Charcoal", "Chicago", "Geneva", "Helvetica Neue", Arial, sans-serif;
+  --small-font: "Geneva", "Helvetica Neue", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -43,26 +46,34 @@ body {
   right: 0;
   height: var(--menubar-height);
   display: flex;
-  align-items: center;
-  padding: 0 8px;
+  align-items: stretch;
+  padding: 0 6px;
   background: var(--platinum);
   border-bottom: 1px solid var(--ink);
-  box-shadow: inset 0 1px 0 var(--platinum-light);
+  box-shadow: inset 0 1px 0 var(--platinum-light), inset 0 -1px 0 var(--platinum-shade);
   font-weight: bold;
   z-index: 10000;
   user-select: none;
 }
+.menubar > * { display: flex; align-items: center; }
 .menubar .menu {
-  padding: 2px 9px;
+  padding: 0 9px;
   cursor: default;
 }
-.menubar .menu:hover {
+/* OS 9 menus highlight only while held, not on hover. */
+.menubar .menu:active {
   background: var(--highlight);
   color: var(--platinum-light);
 }
-.menubar .logo { display: grid; place-items: center; padding: 2px 8px; }
+.menubar .logo { padding: 0 8px; }
 .menubar .spacer { flex: 1; }
-.menubar .clock { padding: 0 10px; font-weight: normal; }
+.menubar .clock { padding: 0 10px; }
+/* The application menu sits past a grooved divider at the far right. */
+.menubar .app-menu {
+  margin-left: 2px;
+  border-left: 1px solid var(--platinum-shade);
+  box-shadow: inset 1px 0 0 var(--platinum-light);
+}
 
 /* ---------- Desktop ---------- */
 
@@ -78,54 +89,110 @@ body {
 }
 .desktop-note strong { display: block; font-size: 13px; }
 
+/* Covers the desktop but lets clicks through to the icons beneath; windows opt back in. */
 #stage {
   position: fixed;
   inset: 0;
+  pointer-events: none;
+}
+.pot-window { pointer-events: auto; }
+
+/* ---------- Desktop icons ---------- */
+
+#desktop-icons {
+  position: fixed;
+  top: calc(var(--menubar-height) + 14px);
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 84px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--small-font);
+  font-size: 10px;
+  color: var(--ink);
+  cursor: default;
+}
+.desktop-icon .thumb {
+  width: 64px;
+  height: 64px;
+}
+.desktop-icon .label {
+  padding: 0 2px;
+  background: var(--platinum-light);
+  white-space: nowrap;
+}
+/* Selected: darkened icon, label inverted to white on black. */
+.desktop-icon:active .thumb,
+.desktop-icon:focus-visible .thumb { filter: brightness(0.5); }
+.desktop-icon:active .label,
+.desktop-icon:focus-visible .label { background: var(--ink); color: var(--platinum-light); }
+.desktop-icon:focus-visible { outline: none; }
+/* An item whose window is open is drawn through a 50% dither, like the Finder did. */
+.desktop-icon.is-open .thumb {
+  -webkit-mask-image: conic-gradient(#000 25%, transparent 0 50%, #000 0 75%, transparent 0);
+  mask-image: conic-gradient(#000 25%, transparent 0 50%, #000 0 75%, transparent 0);
+  -webkit-mask-size: 2px 2px;
+  mask-size: 2px 2px;
 }
 
 /* ---------- Windows ---------- */
 
 .pot-window {
   position: absolute;
-  width: 230px; /* 220px viewport + frame */
-  padding: 0 4px 4px;
+  width: 232px; /* 220px viewport + frame */
+  padding: 0 5px 5px;
   background: var(--platinum);
   border: 1px solid var(--ink);
   box-shadow:
     inset 1px 1px 0 var(--platinum-light),
     inset -1px -1px 0 var(--platinum-shade),
-    2px 2px 0 rgba(0, 0, 0, 0.35);
+    1px 1px 0 rgba(0, 0, 0, 0.35);
   user-select: none;
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.pot-window.closing {
+.pot-window.is-hidden {
   opacity: 0;
   transform: scale(0.92);
   pointer-events: none;
+}
+/* Brief pulse when an already-open window is summoned from its icon. */
+.pot-window.attention { animation: attention 0.35s ease; }
+@keyframes attention {
+  40% { transform: scale(1.04); }
 }
 
 .titlebar {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 1px;
+  height: 21px;
   touch-action: none;
 }
-/* Pinstripes behind the controls; the title punches a solid gap through them. */
+/* Six ridges across the middle of the bar; drawn only on the active window. */
 .titlebar::before {
   content: "";
   position: absolute;
-  inset: 5px 0;
+  left: -2px;
+  right: -2px;
+  top: 4px;
+  height: 12px;
   background: repeating-linear-gradient(
     to bottom,
     var(--platinum-light) 0 1px,
     var(--platinum-shade) 1px 2px
   );
-  z-index: 0;
 }
-.titlebar > * { position: relative; z-index: 1; }
+.titlebar > * { position: relative; }
 .titlebar .title {
   margin: 0 auto;
   padding: 0 6px;
@@ -136,41 +203,55 @@ body {
   text-overflow: ellipsis;
 }
 
-.titlebar button {
-  display: grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  border: 1px solid var(--ink);
-  background: linear-gradient(135deg, var(--platinum-light), var(--platinum) 55%, var(--platinum-shade));
-  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade);
-  color: var(--ink);
-  fill: var(--ink);
-  touch-action: none;
-}
-.titlebar button:active {
-  background: var(--platinum-shade);
-  box-shadow: inset 1px 1px 0 var(--platinum-dark);
-}
-.titlebar button svg { width: 9px; height: 9px; }
-/* Pinned right so the title stays centred in the bar. */
+/* Close box: a recessed well holding a raised square, with a platinum moat
+   that cuts the ridges around it. Pinned right so the title stays centred. */
 .titlebar .close {
   position: absolute;
   right: 1px;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 1px solid;
+  border-color: var(--platinum-dark) var(--platinum-light) var(--platinum-light) var(--platinum-dark);
+  background: var(--platinum);
+  box-shadow: 0 0 0 3px var(--platinum);
   cursor: default;
 }
+.titlebar .close::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--ink);
+  background: linear-gradient(135deg, var(--platinum-light), var(--platinum) 50%, var(--platinum-mid));
+  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade);
+}
+.titlebar .close:active::before {
+  background: linear-gradient(135deg, var(--platinum-dark), var(--platinum-shade));
+  box-shadow: inset 1px 1px 0 var(--ink);
+}
+.titlebar .close:focus-visible { outline: 1px dotted var(--ink); outline-offset: 3px; }
 
-/* Sunken content well. */
+/* Inactive windows: flat bar, grey title, no controls. */
+.pot-window:not(.is-active) .titlebar::before { display: none; }
+.pot-window:not(.is-active) .title { color: var(--inactive-ink); }
+.pot-window:not(.is-active) .close { visibility: hidden; }
+.pot-window:not(.is-active) {
+  box-shadow: inset 1px 1px 0 var(--platinum-light), 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Recessed content area. */
 .viewport {
   width: 220px;
   height: 220px;
   background: var(--platinum-light);
-  border: 1px solid var(--platinum-dark);
-  box-shadow: 1px 1px 0 var(--platinum-light);
+  border: 1px solid;
+  border-color: var(--platinum-dark) var(--platinum-light) var(--platinum-light) var(--platinum-dark);
+  outline: 1px solid var(--ink);
+  outline-offset: -2px;
   cursor: grab;
   touch-action: none;
 }
+.pot-window:not(.is-active) .viewport { outline-color: var(--platinum-dark); }
 .viewport.orbiting { cursor: grabbing; }
 .viewport canvas {
   display: block;
@@ -178,21 +259,82 @@ body {
   height: 100%;
 }
 
-/* ---------- Loading ---------- */
+/* ---------- Dialogs and controls ---------- */
+
+/* Modal dialog: black outline, thick platinum frame, inner groove. */
+.dialog {
+  padding: 3px;
+  background: var(--platinum);
+  border: 1px solid var(--ink);
+  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade), 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+.dialog-body {
+  padding: 14px 18px 16px;
+  border: 1px solid;
+  border-color: var(--platinum-shade) var(--platinum-light) var(--platinum-light) var(--platinum-shade);
+}
 
 #loading {
   position: fixed;
   left: 50%;
-  top: 50%;
+  top: 40%;
+  width: 280px;
   transform: translate(-50%, -50%);
-  padding: 14px 22px;
-  background: var(--platinum);
-  border: 1px solid var(--ink);
-  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade), 2px 2px 0 rgba(0, 0, 0, 0.35);
   pointer-events: none;
   transition: opacity 0.3s ease;
+  z-index: 9000;
 }
 #loading.done { opacity: 0; }
+#loading p { margin: 0 0 10px; }
+
+/* Progress bar: recessed track, accent fill; barber-pole stripes while the size is unknown. */
+.progress {
+  height: 12px;
+  border: 1px solid;
+  border-color: var(--platinum-dark) var(--platinum-light) var(--platinum-light) var(--platinum-dark);
+  background: var(--platinum-mid);
+}
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  border: 1px solid var(--ink);
+  background: linear-gradient(to bottom, #9999ee, var(--highlight) 60%, #4444aa);
+  transition: width 0.2s linear;
+}
+.progress.indeterminate .progress-fill {
+  width: 100%;
+  background:
+    repeating-linear-gradient(-45deg, var(--highlight) 0 6px, #ccccff 6px 12px);
+  background-size: 17px 100%;
+  animation: barber 0.6s linear infinite;
+}
+@keyframes barber {
+  to { background-position: 17px 0; }
+}
+
+/* Platinum push button. */
+.button {
+  display: inline-block;
+  min-width: 70px;
+  padding: 3px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: linear-gradient(to bottom, var(--platinum-light), var(--platinum) 60%, var(--platinum-mid));
+  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade);
+  color: var(--ink);
+  font: inherit;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: default;
+}
+.button:active {
+  background: linear-gradient(to bottom, var(--platinum-dark), var(--platinum-shade));
+  color: var(--platinum-light);
+  box-shadow: inset 1px 1px 0 var(--ink);
+}
+/* Default button: the extra outline ring. */
+.button.default { box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade), 0 0 0 2px var(--platinum), 0 0 0 3px var(--ink); }
 
 /* ---------- CRT glass ---------- */
 

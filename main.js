@@ -23,21 +23,44 @@ const ORBIT_DAMPING = 0.92;                     // inertia decay per frame after
 const MAX_PITCH = THREE.MathUtils.degToRad(70);
 const BASE_YAW = -Math.PI * 0.4;                // resting turn so the handle shows in profile
 
-const MENU_BAR_HEIGHT = 20;                  // keep windows from sliding under the menu bar
+const MENU_BAR_HEIGHT = 20;                     // keep windows from sliding under the menu bar
+const ICON_COLUMN_WIDTH = 110;                  // desktop icons live in a column on the right
+const THUMB_SIZE = 128;                         // px rendered for each icon (shown at 64px)
 
 const stage = document.getElementById('stage');
+const iconColumn = document.getElementById('desktop-icons');
 const mouse = { x: innerWidth / 2, y: innerHeight / 2 };
+const windows = [];
+const icons = new Map();          // product -> icon element
+const savedPositions = new Map(); // product -> { left, top } from when its window was closed
 let dragging = null;
 let topZ = 1;
 
 // Load each distinct model file once, then clone it per window.
 const loader = new GLTFLoader();
 const modelCache = new Map();
+const loadProgress = new Map(); // url -> fraction loaded, or null if the size is unknown
 function loadModel(url) {
   if (!modelCache.has(url)) {
-    modelCache.set(url, loader.loadAsync(url).then((gltf) => normalize(gltf.scene)));
+    loadProgress.set(url, 0);
+    const onProgress = (e) => {
+      loadProgress.set(url, e.lengthComputable ? e.loaded / e.total : null);
+      updateLoadingBar();
+    };
+    modelCache.set(url, loader.loadAsync(url, onProgress).then((gltf) => normalize(gltf.scene)));
   }
   return modelCache.get(url);
+}
+
+function updateLoadingBar() {
+  const fractions = [...loadProgress.values()];
+  const bar = document.querySelector('#loading .progress');
+  const known = fractions.every((f) => f !== null);
+  bar.classList.toggle('indeterminate', !known);
+  if (known) {
+    const total = fractions.reduce((sum, f) => sum + f, 0) / fractions.length;
+    bar.firstElementChild.style.width = `${total * 100}%`;
+  }
 }
 
 // Center the model on the origin and scale it to a unit-ish size.
@@ -54,36 +77,8 @@ function normalize(object) {
   return wrapper;
 }
 
-const CLOSE_ICON = `<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-</svg>`;
-
-function createWindow(product, index) {
-  const el = document.createElement('div');
-  el.className = 'pot-window';
-  el.innerHTML = `
-    <div class="titlebar">
-      <span class="title">${product.name}</span>
-      <button class="close" aria-label="Close window">${CLOSE_ICON}</button>
-    </div>
-    <div class="viewport"></div>`;
-
-  // Scatter the windows in a loose row across the screen.
-  const margin = 40;
-  const step = (innerWidth - 2 * margin - WINDOW_SIZE) / Math.max(PRODUCTS.length - 1, 1);
-  const x = margin + index * step + (Math.random() - 0.5) * 30;
-  const y = innerHeight / 2 - WINDOW_SIZE / 2 + (index % 2 ? 70 : -50) + (Math.random() - 0.5) * 40;
-  el.style.left = `${clamp(x, 0, innerWidth - WINDOW_SIZE - 10)}px`;
-  el.style.top = `${clamp(y, MENU_BAR_HEIGHT + 10, innerHeight - WINDOW_SIZE - 40)}px`;
-  el.style.zIndex = topZ++;
-  stage.appendChild(el);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(WINDOW_SIZE, WINDOW_SIZE, false);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  el.querySelector('.viewport').appendChild(renderer.domElement);
-
+// Lighting and camera shared by the windows and the icon thumbnails.
+function createViewScene(renderer) {
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -96,6 +91,57 @@ function createWindow(product, index) {
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
   camera.position.set(0, 0.35, 3);
   camera.lookAt(0, 0, 0);
+  return { scene, camera };
+}
+
+function createRenderer(size, pixelRatio = 1) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(size, size, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  return renderer;
+}
+
+const CLOSE_ICON = `<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+</svg>`;
+
+// Initial layout: a loose row across the desktop, left of the icon column.
+function scatterPosition(index) {
+  const margin = 40;
+  const width = innerWidth - ICON_COLUMN_WIDTH;
+  const step = (width - 2 * margin - WINDOW_SIZE) / Math.max(PRODUCTS.length - 1, 1);
+  const x = margin + index * step + (Math.random() - 0.5) * 30;
+  const y = innerHeight / 2 - WINDOW_SIZE / 2 + (index % 2 ? 70 : -50) + (Math.random() - 0.5) * 40;
+  return {
+    left: clamp(x, 0, width - WINDOW_SIZE - 10),
+    top: clamp(y, MENU_BAR_HEIGHT + 10, innerHeight - WINDOW_SIZE - 40),
+  };
+}
+
+function createWindow(product, { animateIn = false } = {}) {
+  const el = document.createElement('div');
+  el.className = 'pot-window';
+  el.innerHTML = `
+    <div class="titlebar">
+      <span class="title">${product.name}</span>
+      <button class="close" aria-label="Close window">${CLOSE_ICON}</button>
+    </div>
+    <div class="viewport"></div>`;
+
+  const { left, top } = savedPositions.get(product) ?? scatterPosition(PRODUCTS.indexOf(product));
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
+  if (animateIn) el.classList.add('is-hidden');
+  stage.appendChild(el);
+  if (animateIn) {
+    el.getBoundingClientRect(); // flush styles so removing the class transitions
+    el.classList.remove('is-hidden');
+  }
+
+  const renderer = createRenderer(WINDOW_SIZE, Math.min(devicePixelRatio, 2));
+  el.querySelector('.viewport').appendChild(renderer.domElement);
+  const { scene, camera } = createViewScene(renderer);
 
   // pivot: tilt toward the cursor. orbit: the user's grab-to-rotate.
   const pivot = new THREE.Group();
@@ -113,14 +159,79 @@ function createWindow(product, index) {
     orbit.add(model.clone());
   });
 
-  el.addEventListener('pointerdown', () => { el.style.zIndex = topZ++; });
+  el.addEventListener('pointerdown', () => focusWindow(win));
   attachDrag(win);
   attachOrbit(win);
   const closeButton = el.querySelector('.close');
   // Keep presses on the close box from starting a title-bar drag.
   closeButton.addEventListener('pointerdown', (e) => e.stopPropagation());
   closeButton.addEventListener('click', () => closeWindow(win));
+
+  windows.push(win);
+  focusWindow(win);
+  icons.get(product)?.classList.add('is-open');
   return win;
+}
+
+// Raise a window to the front and make it the one active (striped) window.
+function focusWindow(win) {
+  win.el.style.zIndex = topZ++;
+  for (const other of windows) other.el.classList.toggle('is-active', other === win);
+}
+
+function closeWindow(win) {
+  windows.splice(windows.indexOf(win), 1);
+  savedPositions.set(win.product, { left: win.el.offsetLeft, top: win.el.offsetTop });
+  icons.get(win.product)?.classList.remove('is-open');
+
+  // Hand focus to whichever window is now frontmost.
+  if (win.el.classList.contains('is-active') && windows.length) {
+    focusWindow(windows.reduce((a, b) => (+a.el.style.zIndex > +b.el.style.zIndex ? a : b)));
+  }
+
+  win.el.classList.add('is-hidden');
+  win.el.addEventListener('transitionend', () => {
+    win.el.remove();
+    win.renderer.dispose();
+    win.renderer.forceContextLoss();
+  }, { once: true });
+}
+
+// Reopen a closed window, or bring an open one to the front.
+function openWindow(product) {
+  const existing = windows.find((w) => w.product === product);
+  if (!existing) {
+    createWindow(product, { animateIn: true });
+    return;
+  }
+  focusWindow(existing);
+  existing.el.classList.remove('attention');
+  existing.el.getBoundingClientRect(); // restart the animation if it's mid-flash
+  existing.el.classList.add('attention');
+}
+
+function createIcon(product) {
+  const button = document.createElement('button');
+  button.className = 'desktop-icon';
+  button.innerHTML = `<img class="thumb" alt="" /><span class="label">${product.name}</span>`;
+  button.addEventListener('click', () => openWindow(product));
+  iconColumn.appendChild(button);
+  icons.set(product, button);
+}
+
+// Render each product once into a still image for its desktop icon.
+async function renderThumbnails() {
+  const renderer = createRenderer(THUMB_SIZE);
+  const { scene, camera } = createViewScene(renderer);
+  for (const product of PRODUCTS) {
+    const model = (await loadModel(product.model)).clone();
+    scene.add(model);
+    renderer.render(scene, camera);
+    icons.get(product).querySelector('.thumb').src = renderer.domElement.toDataURL();
+    scene.remove(model);
+  }
+  renderer.dispose();
+  renderer.forceContextLoss();
 }
 
 // Tracks a press on `target` and reports movement once it passes DRAG_THRESHOLD.
@@ -207,16 +318,6 @@ function applyOrbit(win) {
   win.orbit.rotation.x = clamp(win.orbit.rotation.x + win.velocity.x, -MAX_PITCH, MAX_PITCH);
 }
 
-function closeWindow(win) {
-  windows.splice(windows.indexOf(win), 1);
-  win.el.classList.add('closing');
-  win.el.addEventListener('transitionend', () => {
-    win.el.remove();
-    win.renderer.dispose();
-    win.renderer.forceContextLoss();
-  }, { once: true });
-}
-
 function clamp(v, min, max) {
   return Math.min(Math.max(v, min), max);
 }
@@ -234,7 +335,9 @@ addEventListener('resize', () => {
   }
 });
 
-const windows = PRODUCTS.map(createWindow);
+PRODUCTS.forEach(createIcon);
+PRODUCTS.forEach((product) => createWindow(product));
+renderThumbnails();
 
 const clockEl = document.getElementById('clock');
 function updateClock() {

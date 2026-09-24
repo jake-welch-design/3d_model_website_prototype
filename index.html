@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pottery Showcase</title>
+    <title>software ceramics</title>
     <link rel="stylesheet" href="style.css" />
     <script type="importmap">
       {
@@ -26,8 +26,10 @@
       <span class="menu">Help</span>
       <span class="spacer"></span>
       <span class="clock" id="clock"></span>
-      <span class="menu">Studio Pottery</span>
+      <span class="menu app-menu">software ceramics</span>
     </nav>
+
+    <nav id="desktop-icons" aria-label="Pottery"></nav>
 
     <main id="stage"></main>
 
@@ -36,7 +38,19 @@
     Drag a window by its handle. Spin a piece to turn it over. Click one to see it up close.
   </p> -->
 
-    <div id="loading">Loading pottery…</div>
+    <div
+      id="loading"
+      class="dialog"
+      role="progressbar"
+      aria-label="Loading pottery"
+    >
+      <div class="dialog-body">
+        <p>Loading pottery…</p>
+        <div class="progress indeterminate">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+    </div>
 
     <div class="crt" aria-hidden="true"></div>
 
