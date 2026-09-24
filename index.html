@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pottery Showcase</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <nav class="menubar">
+      <!-- <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 14 14" width="14" height="14"><path d="M3 2h8l-1 2c2 1 2.5 3 2 5-.5 2.5-2.5 4-5 4S2.5 11.5 2 9c-.5-2 0-4 2-5z" fill="#6b3f2a" stroke="#000"/></svg>
+    </span> -->
+      <span class="menu">File</span>
+      <span class="menu">Edit</span>
+      <span class="menu">View</span>
+      <span class="menu">Special</span>
+      <span class="menu">Help</span>
+      <span class="spacer"></span>
+      <span class="clock" id="clock"></span>
+      <span class="menu">Studio Pottery</span>
+    </nav>
+
+    <main id="stage"></main>
+
+    <!-- <p class="desktop-note">
+    <strong>Studio Pottery</strong>
+    Drag a window by its handle. Spin a piece to turn it over. Click one to see it up close.
+  </p> -->
+
+    <div id="loading">Loading pottery…</div>
+
+    <div class="crt" aria-hidden="true"></div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .pot-window.product {
+      left: 50%;
+      top: 50%;
+      width: min(480px, calc(100vw - 32px));
+      transform: translate(-50%, -50%);
+    }
+    .product .body {
+      padding: 16px 18px;
+      background: var(--platinum-light);
+      border: 1px solid var(--platinum-dark);
+      line-height: 1.5;
+    }
+    .product h1 { margin: 0 0 8px; font-size: 16px; }
+    .product a { color: var(--highlight); }
+  </style>
+</head>
+<body>
+  <nav class="menubar">
+    <span class="menu">File</span>
+    <span class="menu">Edit</span>
+    <span class="spacer"></span>
+    <span class="menu">Studio Pottery</span>
+  </nav>
+
+  <div class="pot-window product">
+    <div class="titlebar"><span class="title" id="window-title">Mug</span></div>
+    <div class="body">
+      <h1 id="title">Mug</h1>
+      <p>Placeholder product page. The product detail view will go here.</p>
+      <p><a href="index.html">← Back to the desktop</a></p>
+    </div>
+  </div>
+
+  <div class="crt" aria-hidden="true"></div>
+
+  <script>
+    const name = `Mug No. ${new URLSearchParams(location.search).get('id') ?? '?'}`;
+    for (const id of ['title', 'window-title']) document.getElementById(id).textContent = name;
+    document.title = name;
+  </script>
+</body>
+</html>

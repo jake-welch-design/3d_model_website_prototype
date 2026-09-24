@@ -1,0 +1,219 @@
+/* Late-90s desktop (Platinum-era) look, viewed through a CRT. */
+:root {
+  --desktop: #6673b0;
+  --desktop-dither: #5b67a3;
+  --platinum: #dddddd;
+  --platinum-light: #ffffff;
+  --platinum-shade: #999999;
+  --platinum-dark: #555555;
+  --ink: #000000;
+  --highlight: #3333aa;
+  --menubar-height: 20px;
+  --ui-font: "Charcoal", "Chicago", "Geneva", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--ui-font);
+  font-size: 12px;
+  -webkit-font-smoothing: none;
+}
+
+/* 2px checker dither, like the classic desktop patterns. */
+body {
+  background-color: var(--desktop);
+  background-image:
+    linear-gradient(45deg, var(--desktop-dither) 25%, transparent 25%, transparent 75%, var(--desktop-dither) 75%),
+    linear-gradient(45deg, var(--desktop-dither) 25%, transparent 25%, transparent 75%, var(--desktop-dither) 75%);
+  background-size: 4px 4px;
+  background-position: 0 0, 2px 2px;
+}
+
+/* ---------- Menu bar ---------- */
+
+.menubar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--menubar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--platinum);
+  border-bottom: 1px solid var(--ink);
+  box-shadow: inset 0 1px 0 var(--platinum-light);
+  font-weight: bold;
+  z-index: 10000;
+  user-select: none;
+}
+.menubar .menu {
+  padding: 2px 9px;
+  cursor: default;
+}
+.menubar .menu:hover {
+  background: var(--highlight);
+  color: var(--platinum-light);
+}
+.menubar .logo { display: grid; place-items: center; padding: 2px 8px; }
+.menubar .spacer { flex: 1; }
+.menubar .clock { padding: 0 10px; font-weight: normal; }
+
+/* ---------- Desktop ---------- */
+
+.desktop-note {
+  position: fixed;
+  left: 16px;
+  bottom: 18px;
+  max-width: 260px;
+  color: var(--platinum-light);
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.desktop-note strong { display: block; font-size: 13px; }
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* ---------- Windows ---------- */
+
+.pot-window {
+  position: absolute;
+  width: 230px; /* 220px viewport + frame */
+  padding: 0 4px 4px;
+  background: var(--platinum);
+  border: 1px solid var(--ink);
+  box-shadow:
+    inset 1px 1px 0 var(--platinum-light),
+    inset -1px -1px 0 var(--platinum-shade),
+    2px 2px 0 rgba(0, 0, 0, 0.35);
+  user-select: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.pot-window.closing {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+}
+
+.titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 1px;
+  touch-action: none;
+}
+/* Pinstripes behind the controls; the title punches a solid gap through them. */
+.titlebar::before {
+  content: "";
+  position: absolute;
+  inset: 5px 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--platinum-light) 0 1px,
+    var(--platinum-shade) 1px 2px
+  );
+  z-index: 0;
+}
+.titlebar > * { position: relative; z-index: 1; }
+.titlebar .title {
+  margin: 0 auto;
+  padding: 0 6px;
+  background: var(--platinum);
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titlebar button {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--ink);
+  background: linear-gradient(135deg, var(--platinum-light), var(--platinum) 55%, var(--platinum-shade));
+  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade);
+  color: var(--ink);
+  fill: var(--ink);
+  touch-action: none;
+}
+.titlebar button:active {
+  background: var(--platinum-shade);
+  box-shadow: inset 1px 1px 0 var(--platinum-dark);
+}
+.titlebar button svg { width: 9px; height: 9px; }
+/* Pinned right so the title stays centred in the bar. */
+.titlebar .close {
+  position: absolute;
+  right: 1px;
+  cursor: default;
+}
+
+/* Sunken content well. */
+.viewport {
+  width: 220px;
+  height: 220px;
+  background: var(--platinum-light);
+  border: 1px solid var(--platinum-dark);
+  box-shadow: 1px 1px 0 var(--platinum-light);
+  cursor: grab;
+  touch-action: none;
+}
+.viewport.orbiting { cursor: grabbing; }
+.viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Loading ---------- */
+
+#loading {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 14px 22px;
+  background: var(--platinum);
+  border: 1px solid var(--ink);
+  box-shadow: inset 1px 1px 0 var(--platinum-light), inset -1px -1px 0 var(--platinum-shade), 2px 2px 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#loading.done { opacity: 0; }
+
+/* ---------- CRT glass ---------- */
+
+.crt {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20000;
+  border-radius: 18px / 14px;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
+  /* Black beyond the rounded glass, plus a soft inner glow at the edge. */
+  box-shadow:
+    0 0 0 40px #000,
+    inset 0 0 60px rgba(0, 0, 0, 0.4),
+    inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+.crt::after {
+  /* Faint glare across the top of the glass. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.07) 0%, transparent 35%);
+}
